@@ -2,7 +2,7 @@
 
 import {Box, Button, Modal, Stack, TextField, Typography} from '@mui/material'
 import { firestore } from '@/firebase';
-import { collection, getDocs, query, setDoc, doc, deleteDoc, getDoc} from 'firebase/firestore';
+import { collection, getDocs, query, setDoc, doc, deleteDoc, getDoc, count} from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 // 33:49
 const style = {
@@ -28,6 +28,9 @@ export default function Home() {
   const handleClose = () => setOpen(false)
 
   const [itemName, setItemName] = useState('')
+  const [quantity, setQuantity] = useState('')
+  const [error, setError] = useState('');
+  const [quantityError, setQuantityError] = useState('');
 
   const updatePantry = async () => {
     const snapshot = query(collection(firestore, 'pantry'))
@@ -44,16 +47,29 @@ export default function Home() {
     updatePantry()
   }, [])
   
-  const addItem = async (item) => {
+  const addItem = async (item, quantity) => {
+    if (!item) {
+      setError('Item name is required')
+      return
+    }
+
+    const quantityToAdd = quantity ? parseInt(quantity) : 1;
+    if (isNaN(quantityToAdd) || quantityToAdd <= 0) {
+      setQuantityError('Quantity must be number')
+      return
+    }
+
     const docRef = doc(collection(firestore, 'pantry'), item)
     const docSnap = await getDoc(docRef)
     if (docSnap.exists()) {
       const {count} = docSnap.data()
-      await setDoc(docRef, {count: count + 1})
+      await setDoc(docRef, {count: count + quantityToAdd})
     }
     else {
-      await setDoc(docRef, {count: 1})
+      await setDoc(docRef, {count: quantityToAdd})
     }
+    setError('')
+    setQuantityError('')
     await updatePantry()
   }
 
@@ -82,6 +98,9 @@ export default function Home() {
       flexDirection={'column'}
       gap={2}
     >
+      <Typography variant="h2" component="h1">
+        Pantry Website
+      </Typography>
       <Modal
         open={open}
         onClose={handleClose}
@@ -93,11 +112,15 @@ export default function Home() {
             Add Item
           </Typography>
           <Stack width="100%" direction={'row'} spacing={2}>
-            <TextField id="outlined-basic" label="Item" variant="outlined" fullWidth value={itemName} onChange={(e) => setItemName(e.target.value)}/>
+            <TextField id="item-name" label="Item" variant="outlined" fullWidth value={itemName} onChange={(e) => setItemName(e.target.value)} error={!!error}
+              helperText={error}/>
+            <TextField id="item-quantity" label="Quantity" variant="outlined" fullWidth value={quantity} onChange={(e) => setQuantity(e.target.value)} error={!!quantityError}
+              helperText={quantityError}/>
             <Button variant="outlined" 
             onClick={() => {
-              addItem(itemName)
+              addItem(itemName, quantity)
               setItemName('')
+              setQuantity('')
               handleClose()
             }}>Add</Button>
           </Stack>
