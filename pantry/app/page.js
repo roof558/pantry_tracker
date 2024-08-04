@@ -2,7 +2,7 @@
 
 import {Box, Button, Modal, Stack, TextField, Typography} from '@mui/material'
 import { firestore } from '@/firebase';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { collection, getDocs, query, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 // 33:49
 const style = {
@@ -15,6 +15,9 @@ const style = {
   border: '2px solid #000',
   boxShadow: 24,
   p: 4,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 3,
 };
 
 export default function Home() {
@@ -26,19 +29,32 @@ export default function Home() {
 
   const [itemName, setItemName] = useState('')
 
+  const updatePantry = async () => {
+    const snapshot = query(collection(firestore, 'pantry'))
+    const docs = await getDocs(snapshot)
+    const pantryList = []
+    docs.forEach((doc) => {
+      pantryList.push(doc.id)
+    })
+    console.log(pantryList)
+    setPantry(pantryList)
+  }
+
   useEffect(() => {
-    const updatePantry = async () => {
-      const snapshot = query(collection(firestore, 'pantry'))
-      const docs = await getDocs(snapshot)
-      const pantryList = []
-      docs.forEach((doc) => {
-        pantryList.push(doc.id)
-      })
-      console.log(pantryList)
-      setPantry(pantryList)
-    }
     updatePantry()
   }, [])
+  
+  const addItem = async (item) => {
+    const docRef = doc(collection(firestore, 'pantry'), item)
+    await setDoc(docRef, {})
+    await updatePantry()
+  }
+
+  const removeItem = async (item) => {
+    const docRef = doc(collection(firestore, 'pantry'), item)
+    await deleteDoc(docRef)
+    await updatePantry()
+  }
 
   return (
     <Box
@@ -61,8 +77,13 @@ export default function Home() {
             Add Item
           </Typography>
           <Stack width="100%" direction={'row'} spacing={2}>
-            <TextField id="outlined-basic" label="Item" variant="outlined" />
-            <Button variant="contained">Search</Button>
+            <TextField id="outlined-basic" label="Item" variant="outlined" fullWidth value={itemName} onChange={(e) => setItemName(e.target.value)}/>
+            <Button variant="outlined" 
+            onClick={() => {
+              addItem(itemName)
+              setItemName('')
+              handleClose()
+            }}>Add</Button>
           </Stack>
         </Box>
       </Modal>
@@ -78,22 +99,23 @@ export default function Home() {
           height="300px"
           spacing={2}
           overflow={'auto'}>
-
             {pantry.map((i) => (
-              <Box
-                key={i}
-                width="100%"
-                minHeight="150px"
-                display={'flex'}
-                justifyContent={'center'}
-                alignItems={'center'}
-                bgcolor={'#f0f0f0'}>
-                <Typography variant={'h3'} color={'#333'} textAlign={'center'}>
-                    {
-                      i.charAt(0).toUpperCase() + i.slice(1)
-                    }
-                </Typography>
-              </Box>
+                <Box
+                  key={i}
+                  width="100%"
+                  minHeight="150px"
+                  display={'flex'}
+                  justifyContent={'space-between'}
+                  alignItems={'center'}
+                  bgcolor={'#f0f0f0'}
+                  paddingX={5}>
+                  <Typography variant={'h3'} color={'#333'} textAlign={'center'}>
+                      {
+                        i.charAt(0).toUpperCase() + i.slice(1)
+                      }
+                  </Typography>
+                  <Button variant="contained" onClick={() => removeItem(i)}>Remove</Button>
+                </Box>
             ))}
         </Stack>
       </Box>
