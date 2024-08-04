@@ -49,7 +49,12 @@ export default function Home() {
   const [error, setError] = useState('')
   
   const handleOpen = () => setOpen(true)
-  const handleClose = () => setOpen(false)
+  const handleClose = () => {
+    setItemName('');
+    setQuantity('');
+    setError('');
+    setOpen(false);
+  };
 
   const updatePantry = async () => {
     const snapshot = query(collection(firestore, 'pantry'))
